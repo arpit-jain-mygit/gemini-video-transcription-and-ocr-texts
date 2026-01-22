@@ -1,0 +1,71 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+
+# =========================
+# Virtual Environments
+# =========================
+.venv/
+venv/
+ENV/
+env/
+
+# =========================
+# Cache & Temp
+# =========================
+.cache/
+.pytest_cache/
+.mypy_cache/
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# Generated Data (Do NOT commit)
+# =========================
+transcripts/
+clean_qna/
+archived/
+
+# Audio / Video intermediates
+*.mp3
+*.wav
+*.m4a
+*.webm
+*.mp4
+*.opus
+
+# =========================
+# yt-dlp artifacts
+# =========================
+*.part
+*.ytdl
+*.json
+
+# =========================
+# IDE / Editor
+# =========================
+.idea/
+.vscode/
+*.iml
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Shell
+# =========================
+*.sh~
