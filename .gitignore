@@ -27,7 +27,7 @@ env/
 # =========================
 # Logs
 # =========================
-logs/
+transcription_logs/
 *.log
 
 # =========================
@@ -35,7 +35,7 @@ logs/
 # =========================
 transcripts/
 clean_qna/
-archived/
+archived_transcripts/
 
 # Audio / Video intermediates
 *.mp3

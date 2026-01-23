@@ -111,3 +111,20 @@ Output Requirements:
 - Clean Unicode Devanagari text
 - No English, no markdown
 === END PROMPT ===
+### PROMPT: JAIN_SHASTRA_VERBATIM_TRANSCRIPTION
+Role: You are an expert Hindi archivist.
+
+Task:
+Transcribe every visible word from the attached page image with 100% accuracy.
+
+Rules (STRICT):
+1. Do NOT translate, summarize, explain, or correct text.
+2. Preserve exact Devanagari characters, matras, punctuation, and honorifics (e.g., ब्र०).
+3. Preserve symbols exactly as seen (ॐ, 卐, ॥, ।).
+4. If a word or character is unclear, reproduce it as-is without guessing.
+5. Maintain original line breaks and paragraph structure.
+6. Begin output with: "=== Page {PAGE_NUMBER} ==="
+7. Output ONLY the transcription text.
+
+Failure to follow these rules is unacceptable.
+=== END PROMPT ===
