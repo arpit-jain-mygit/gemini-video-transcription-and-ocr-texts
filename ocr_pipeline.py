@@ -4,6 +4,8 @@ import os
 import sys
 import time
 import io
+import requests                       # >>> GITHUB ADDITION >>>
+from urllib.parse import urlparse     # >>> GITHUB ADDITION >>>
 from datetime import datetime
 from pdf2image import convert_from_path
 from PIL import Image
@@ -30,6 +32,12 @@ MODEL_NAME = "gemini-2.5-flash"
 INPUT_DIR = "input_docs"
 OUTPUT_DIR = "output_texts"
 DPI = 300
+
+# >>> GITHUB ADDITION >>>
+GITHUB_OWNER = "arpit-jain-mygit"
+GITHUB_REPO = "jain-scanned-docs"
+GITHUB_BRANCH = "main"
+# <<< GITHUB ADDITION <<<
 
 PROMPT_TEMPLATE = """
 Role: You are an expert Indic-language archivist specializing in Hindi manuscripts and mixed-script texts.
@@ -91,6 +99,48 @@ def log_leaf(msg):
     print(f"   │   └─ [{ts()}] {msg}", flush=True)
 
 # =========================================================
+# >>> GITHUB ADDITION >>>
+# =========================================================
+def list_github_pdfs(path=""):
+    api_url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/contents/{path}"
+    r = requests.get(api_url, timeout=30)
+    r.raise_for_status()
+
+    pdfs = []
+    for item in r.json():
+        if item["type"] == "file" and item["name"].lower().endswith(".pdf"):
+            pdfs.append(item["download_url"])
+        elif item["type"] == "dir":
+            pdfs.extend(list_github_pdfs(item["path"]))
+    return pdfs
+
+
+def download_pdfs_from_github():
+    log_child("Fetching PDFs from GitHub repository")
+
+    pdf_urls = list_github_pdfs()
+    if not pdf_urls:
+        raise RuntimeError("No PDFs found in GitHub repo")
+
+    os.makedirs(INPUT_DIR, exist_ok=True)
+
+    for url in pdf_urls:
+        filename = os.path.basename(urlparse(url).path)
+        local_path = os.path.join(INPUT_DIR, filename)
+
+        if os.path.exists(local_path):
+            log_leaf(f"♻️ {filename} already exists → skipping")
+            continue
+
+        log_leaf(f"⬇️ Downloading {filename}")
+        r = requests.get(url, timeout=60)
+        r.raise_for_status()
+
+        with open(local_path, "wb") as f:
+            f.write(r.content)
+# <<< GITHUB ADDITION <<<
+
+# =========================================================
 # GEMINI SAFE CALL (VERTEX – STABLE)
 # =========================================================
 def gemini_generate_with_retry(prompt: str, image: Image.Image, page_num: int):
@@ -137,7 +187,6 @@ def process_pdf(pdf_path):
     log_parent(f"Processing PDF: {pdf_name}")
     log_child(f"Using cache directory: {pdf_cache_dir}")
 
-    # ---- PDF → IMAGE ----
     log_child("Starting PDF → image conversion...")
     start = time.perf_counter()
     pages = convert_from_path(pdf_path, dpi=DPI)
@@ -151,12 +200,11 @@ def process_pdf(pdf_path):
             continue
 
         log_leaf(f"Page {page_num}: OCR started")
-
         prompt = PROMPT_TEMPLATE.format(page=page_num)
 
         response = gemini_generate_with_retry(prompt, page, page_num)
-
         text = (response.text or "").strip()
+
         if not text:
             raise RuntimeError(f"Empty OCR output on page {page_num}")
 
@@ -165,26 +213,20 @@ def process_pdf(pdf_path):
 
         log_leaf(f"Page {page_num}: Cached successfully")
 
-    # ---- MERGE FINAL OUTPUT (CORRECTED) ----
     log_child("Rebuilding final output from cached pages (single header per page)")
 
     with open(final_output_path, "w", encoding="utf-8") as out:
         for page_num in range(1, len(pages) + 1):
             page_file = os.path.join(pdf_cache_dir, f"page_{page_num:03d}.txt")
 
-            if not os.path.exists(page_file):
-                raise RuntimeError(f"Missing cached page file: {page_file}")
-
             out.write(f"=== Page {page_num} ===\n")
 
             with open(page_file, "r", encoding="utf-8") as f:
                 page_text = f.read().lstrip()
-
-                # Remove duplicate model-generated page header if present
                 header = f"=== Page {page_num} ==="
 
                 if page_text.startswith(header):
-                    page_text = page_text[len(header):].lstrip("\n").lstrip()
+                    page_text = page_text[len(header):].lstrip()
 
                 out.write(page_text.rstrip())
 
@@ -203,6 +245,10 @@ def main():
     log_parent("Jain PDF Verbatim OCR Pipeline Started")
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # >>> GITHUB ADDITION >>>
+    download_pdfs_from_github()
+    # <<< GITHUB ADDITION <<<
 
     pdf_files = sorted(
         f for f in os.listdir(INPUT_DIR)
